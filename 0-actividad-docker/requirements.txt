@@ -1,0 +1,6 @@
+pydantic==2.10.6
+fastapi==0.115.8
+uvicorn==0.34.0
+numpy==1.26.4
+scikit-learn==1.4.0
+lightgbm==4.5.0
