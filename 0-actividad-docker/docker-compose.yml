@@ -1,0 +1,13 @@
+
+services:     
+  fastapi_container: 
+    build: . 
+    
+    ports:
+      - "8989:8989" 
+
+    volumes:
+      - './logs:/logs' 
+      
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8989", "--reload"]
+    
