@@ -1,2 +1,5 @@
 *.joblib
 .env
+.ipynb_checkpoints
+artifacts/
+__pycache__/
