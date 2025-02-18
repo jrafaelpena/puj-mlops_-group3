@@ -1,6 +1,6 @@
 ### Actividad # 2: Taller entrenamiento en Jupyter y consumo de modelos por API usando uv como administrador de paquetes
 
-En la carpeta app se encuentra todo el código necesario para la ejecución del taller.
+En la carpeta `app` se encuentra todo el código necesario para la ejecución del taller.
 
 El archivo `docker-compose.yml` define dos servicios: uno para Jupyter y otro para FastAPI, cada uno utilizando su respectiva imagen. Ambos servicios comparten un volumen llamado `artifacts`, donde se almacenan los modelos entrenados en Jupyter para que la API pueda consumirlos.
 
