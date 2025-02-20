@@ -3,3 +3,4 @@
 .ipynb_checkpoints
 artifacts/
 __pycache__/
+*.csv
