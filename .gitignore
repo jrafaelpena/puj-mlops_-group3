@@ -5,3 +5,8 @@ artifacts/
 __pycache__/
 *.csv
 *.pdf
+
+*.gz
+*.pbtxt
+*.pb
+*.sqlite
