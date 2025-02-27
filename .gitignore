@@ -10,3 +10,8 @@ __pycache__/
 *.pbtxt
 *.pb
 *.sqlite
+
+/proyectos/proyecto-1/constants.py
+/proyectos/proyecto-1/transform.py
+/proyectos/proyecto-1/pipeline/*
+!/proyectos/proyecto-1/pipeline/.gitkeep

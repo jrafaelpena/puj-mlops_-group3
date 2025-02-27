@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "pandas",
+    "pip>=25.0.1",
     "requests",
     "scikit-learn",
     "tfx==1.16.0",
