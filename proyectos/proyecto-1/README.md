@@ -14,7 +14,8 @@ El enfoque principal es la construcción de una canalización robusta que permit
 Este proyecto requiere las siguientes tecnologías para su ejecución:
 
 - *Docker & Docker Compose* para la gestión de entornos aislados.
-- *Python 3.8+* con dependencias definidas en requirements.txt.
+- *UV* para la administración rápida y eficiente de paquetes.
+- *Python 3.8+* con dependencias definidas en `pyproject.toml` y `uv.lock`.
 - *Jupyter Notebook* para el desarrollo y documentación del flujo de trabajo.
 - *Git & GitHub* para la gestión del código y colaboración en equipo.
 
@@ -27,13 +28,12 @@ Para desplegar este entorno, se deben seguir los siguientes pasos:
    git clone https://github.com/usuario/repositorio.git
    cd repositorio
    
-2. Construir y desplegar los contenedores de infraestructura:
+2. Construir la imagen y generar el contenedor de infraestructura:
    sh
    docker-compose up --build
    
-3. Ejecutar el entorno interactivo con Jupyter Notebook:
-   sh
-   jupyter notebook
+3. Ejecutar el entorno interactivo en Jupyter Lab:
+   Acceder al link que se entrega en la creación
    
 
 ## Estructura del Repositorio
@@ -48,6 +48,7 @@ La estructura del proyecto está organizada de la siguiente manera:
  ├── Dockerfile.jupyter  # Configuración del entorno en Docker
  ├── README.md           # Documentación del proyecto
  ├── docker-compose.yml  # Configuración de Docker Compose
+ ├── notebook-ejecutado.yml  # Notebook ejecutado
  ├── notebook.ipynb      # Implementación y ejecución de pruebas en Jupyter
  ├── pyproject.toml      # Configuración del entorno de desarrollo
  ├── uv.lock             # Archivos de bloqueo para dependencias
