@@ -2,10 +2,8 @@
 FROM alpine:latest 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-WORKDIR /project-1
+WORKDIR /project
 
-# Crear las carpetas necesarias
-RUN mkdir -p pipeline data/covertype
 
 COPY pyproject.toml .
 COPY uv.lock .

@@ -1,0 +1,16 @@
+services:
+  jupyter:
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+
+    image: project-1-jupyter
+
+    ports:
+      - "8888:8888"
+
+    volumes:
+      - './data:/project/data'
+      - './pipeline:/project/pipeline'
+
+    command: ["uv", "run", "--with", "jupyter", "jupyter", "lab"]
