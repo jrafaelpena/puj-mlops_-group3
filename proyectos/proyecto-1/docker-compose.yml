@@ -12,5 +12,3 @@ services:
     volumes:
       - './data:/project/data'
       - './pipeline:/project/pipeline'
-
-    command: ["uv", "run", "--with", "jupyter", "jupyter", "lab"]
