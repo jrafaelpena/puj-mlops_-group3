@@ -15,6 +15,6 @@ COPY notebook.ipynb .
 EXPOSE 8888
 
 # Comando por defecto al iniciar el contenedor
-CMD ["uv", "run", "--with", "jupyter", "jupyter", "lab"]
+ENTRYPOINT ["uv", "run", "--with", "jupyter", "jupyter", "lab"]
 
 
