@@ -4,24 +4,27 @@ import pandas as pd
 from sqlalchemy import create_engine
 
 @dag(
-    dag_id="preprocess_iris_data",
+    dag_id="clean_and_upload_iris_data",
     start_date=days_ago(1),
     schedule_interval=None,
     catchup=False
 )
-def preprocess_iris_data():
+def clean_and_upload_iris_data():
     
     @task
-    def preprocess():
+    def clean_data():
         engine = create_engine('mysql+pymysql://taller-airflow:mysql@mysql/taller')
         
+        # Leemos los datos preprocesados (puedes cambiar a 'iris_raw' según convenga)
         df = pd.read_sql_table('iris_raw', engine)
         
-        df_clean = df.dropna()
+        # Realizamos una limpieza adicional, por ejemplo, eliminamos duplicados y filas con NaN
+        df_clean = df.drop_duplicates().dropna()
         
-        df_clean.to_sql('iris_preprocessed', engine, if_exists='replace', index=False)
-        print("Preprocesamiento completado y datos guardados en 'iris_preprocessed'.")
+        # Guardamos los datos limpios en una nueva tabla, por ejemplo 'iris_cleaned'
+        df_clean.to_sql('iris_cleaned', engine, if_exists='replace', index=False)
+        print("Datos limpios y guardados en 'iris_cleaned'.")
     
-    preprocess()
+    clean_data()
 
-preprocess_iris_dag = preprocess_iris_data()
+clean_and_upload_dag = clean_and_upload_iris_data()
