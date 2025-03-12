@@ -31,6 +31,7 @@ x-airflow-common:
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
+    - ./artifacts:/opt/airflow/artifacts
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -190,6 +191,10 @@ services:
         fi
         mkdir -p /sources/logs /sources/dags /sources/plugins
         chown -R "${AIRFLOW_UID}:0" /sources/{logs,dags,plugins}
+        mkdir -p /sources/logs /sources/dags /sources/plugins /opt/airflow/artifacts
+        chown -R "${AIRFLOW_UID}:0" /sources/{logs,dags,plugins}
+        chown -R "${AIRFLOW_UID}:0" /opt/airflow/artifacts
+        chmod -R 777 /opt/airflow/artifacts
         exec /entrypoint airflow version
     # yamllint enable rule:line-length
     environment:
@@ -238,20 +243,6 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
-  jupyter:
-    build:
-      context: ml-training
-      dockerfile: Dockerfile.jupyter
-    
-    image: jupyter-server
-    restart: "no"
-
-    ports:
-      - "8888:8888"
-
-    volumes:
-      - 'artifacts:/work/artifacts'
-
   mysql:
     image: mysql:8.0
     restart: always
@@ -270,6 +261,19 @@ services:
       timeout: 5s
       retries: 5
 
+  fastapi:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.fastapi
+
+    ports:
+      - "8989:8989"
+    
+    volumes:
+      - './artifacts:/app/artifacts'
+  
+    command: ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8989", "--reload"]
+    
 volumes:
   postgres-db-volume:
   mysql-data:

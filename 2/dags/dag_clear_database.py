@@ -13,10 +13,6 @@ def clear_database_dag():
     
     @task
     def clear_database(**kwargs):
-        from airflow.models import TaskInstance
-
-        ti: TaskInstance = kwargs['ti']
-        log = ti.log
 
         db_config = {
             "host": "mysql",
@@ -30,7 +26,7 @@ def clear_database_dag():
                 cursor.execute("DROP TABLE IF EXISTS iris_raw;")
                 conn.commit()
 
-        log.info("Table 'iris_raw' dropped successfully (if it existed).")
+        print("Table 'iris_raw' dropped successfully (if it existed).")
 
     clear_database()
 

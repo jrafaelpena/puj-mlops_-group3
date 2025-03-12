@@ -7,7 +7,7 @@ import pickle
 import os
 
 @dag(
-    dag_id="4-train-model",
+    dag_id="train-model",
     start_date=days_ago(1),
     schedule_interval="@once",
     catchup=False
