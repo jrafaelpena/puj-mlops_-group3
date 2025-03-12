@@ -7,9 +7,9 @@ import pickle
 import os
 
 @dag(
-    dag_id="train_and_extract_model",
+    dag_id="4-train-model",
     start_date=days_ago(1),
-    schedule_interval=None,
+    schedule_interval="@once",
     catchup=False
 )
 def train_and_extract_model():

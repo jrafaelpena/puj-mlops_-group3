@@ -4,9 +4,9 @@ import pandas as pd
 from sqlalchemy import create_engine
 
 @dag(
-    dag_id="clean_and_upload_iris_data",
+    dag_id="3-clean-upload-iris",
     start_date=days_ago(1),
-    schedule_interval=None,
+    schedule_interval="@once",
     catchup=False
 )
 def clean_and_upload_iris_data():

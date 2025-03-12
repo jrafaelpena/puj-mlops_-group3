@@ -4,9 +4,9 @@ from datetime import datetime
 import mysql.connector
 
 @dag(
-    dag_id='clear_database',
+    dag_id='1-clear-database',
     start_date=days_ago(1),
-    schedule_interval=None,
+    schedule_interval="@once",
     catchup=False
 )
 def clear_database_dag():

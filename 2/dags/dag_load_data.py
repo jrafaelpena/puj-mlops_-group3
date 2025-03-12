@@ -16,12 +16,12 @@ def load_iris_data():
     iris.to_sql('iris_raw', engine, if_exists='replace', index=False)
 
 # Define the DAG
-with DAG('load_iris_data', 
-         start_date=datetime(2023, 1, 1), 
-         schedule_interval=None, 
+with DAG('2-load-iris-data', 
+         start_date=datetime(2025, 3, 11), 
+         schedule_interval="@once", 
          catchup=False) as dag:
     
-    load_data_task = PythonOperator(
+    t1 = load_data_task = PythonOperator(
         task_id='load_iris_data',
         python_callable=load_iris_data
     )
