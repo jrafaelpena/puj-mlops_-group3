@@ -6,6 +6,7 @@ COPY pyproject.toml .
 COPY uv.lock .
 COPY .python-version .
 COPY training.ipynb .
+COPY preprocess.py .
 
 #Asegura que primero se instalen todas las dependencias del proyecto y permita exponer al final el servidor
 RUN uv sync --frozen
