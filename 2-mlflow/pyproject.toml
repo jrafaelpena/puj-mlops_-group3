@@ -1,0 +1,12 @@
+[project]
+name = "2-mlflow"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "awscli>=1.38.13",
+    "boto3>=1.37.13",
+    "mlflow>=2.21.0",
+    "psycopg2-binary>=2.9.10",
+]

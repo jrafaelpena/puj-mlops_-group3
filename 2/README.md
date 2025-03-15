@@ -12,7 +12,7 @@ contraseña: airflow
 
 *Cabe resaltar que, para que la API funcione correctamente, primero se deben seguir una serie de pasos en Airflow, incluyendo el entrenamiento del modelo. Si se intenta realizar una inferencia antes de entrenar, la API notificará al usuario que el modelo aún no ha sido generado y debe ser entrenado previamente.*
 
-![imagen](images/falla-carga-modelo.png)
+curso-mlops/puj-mlops_-group3/2-mlflow/images/0-dockercompose.png
 
 Para llegar al modelo que va a consumir el API, se agregaron los siguientes DAGs:
 
