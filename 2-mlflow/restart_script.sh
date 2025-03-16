@@ -1,5 +1,5 @@
 #!/bin/bash
-uv sync
 rm --recursive --force minio
+uv sync
 
 echo "Restart script ran successfully!"

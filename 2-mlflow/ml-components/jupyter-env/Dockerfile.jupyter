@@ -1,0 +1,16 @@
+FROM python:3.10.16
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/
+
+WORKDIR /work
+
+COPY pyproject.toml .
+COPY uv.lock .
+COPY .python-version .
+
+# Install dependencies
+RUN uv sync --frozen
+
+# Expose port 8888
+EXPOSE 8888
+
+ENTRYPOINT ["uv", "run", "jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--allow-root", "--NotebookApp.token=''"]

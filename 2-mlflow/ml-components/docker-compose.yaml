@@ -1,0 +1,25 @@
+services:
+  fastapi:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.fastapi
+    
+    image: fast-api-mlflow
+    
+    ports:
+      - "8989:8989"
+
+    command: ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8989", "--reload"]
+
+  jupyter:
+    build:
+      context: ./jupyter-env
+      dockerfile: Dockerfile.jupyter
+    
+    image: jupyter-mlflow
+
+    ports:
+      - "8888:8888"
+
+    volumes:
+      - './jupyter-env:/work'
