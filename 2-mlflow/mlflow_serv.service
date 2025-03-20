@@ -8,8 +8,8 @@ Restart=on-failure
 RestartSec=3
 WorkingDirectory=/home/estudiante/curso-mlops/puj-mlops_-group3/2-mlflow
 Environment=MLFLOW_S3_ENDPOINT_URL=http://10.43.101.189:9000
-Environment=AWS_ACCESS_KEY_ID=admin
-Environment=AWS_SECRET_ACCESS_KEY=supersecret
+Environment=AWS_ACCESS_KEY_ID=minioadmin
+Environment=AWS_SECRET_ACCESS_KEY=minioadmin
 ExecStart= /home/estudiante/curso-mlops/puj-mlops_-group3/2-mlflow/.venv/bin/python3 -m mlflow server \
 --backend-store-uri postgresql://mlflow_user:mlflow_user@10.43.101.189:5432/mlflow_db \
 --default-artifact-root s3://mlflows3/artifacts \
