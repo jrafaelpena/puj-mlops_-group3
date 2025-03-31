@@ -31,3 +31,8 @@ dev/
 minio/
 
 mlruns/
+
+logs/
+dags/
+config/
+plugins/

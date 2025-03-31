@@ -1,0 +1,4 @@
+CREATE DATABASE IF NOT EXISTS train_data;
+CREATE USER IF NOT EXISTS 'airflow'@'%' IDENTIFIED BY 'airflow';
+GRANT ALL PRIVILEGES ON train_data.* TO 'airflow'@'%';
+FLUSH PRIVILEGES;
