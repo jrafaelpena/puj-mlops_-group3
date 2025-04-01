@@ -1,6 +1,6 @@
 # Proyecto 2: Orquestación, métricas y modelos
 
-### Paso 1. Despliegue de API que entrega dataset por lotes
+## Paso 1. Despliegue de API que entrega dataset por lotes
 
 En este apartado se despliega un contenedor que aloja el API. Cabe resaltar que se realizaron algunas modificaciones al código para mejorar la distribución de los datos en los lotes y evitar errores al alcanzar el final del conjunto de datos:
 
@@ -33,7 +33,9 @@ Se realizan múltiples ejecuciones en un notebook para verificar el comportamien
 
    <img src="images/batch_1.png" width="50%"> 
 
-### Paso 2. Despliegue servicios del proyecto
+> Vale la pena aclarar que para nunestra implementación el tiempo de mínimo de refresco es 120 segundos.
+
+## Paso 2. Despliegue servicios del proyecto
 
 Mediante el archivo `docker-compose.yaml` se levantan todos los servicios que componen el proyecto:
 
@@ -45,7 +47,7 @@ Mediante el archivo `docker-compose.yaml` se levantan todos los servicios que co
 
 Se ha mantenido una estructura similar a la que se ha usado anteriormente, pero se resaltan los siguientes cambios que soportan la correcta automatización del proceso:
 
-#### Creación de servicio `minio-setup`
+### Creación de servicio `minio-setup`
 
 Se incluye este servicio `init` para automatizar la creación del bucket usado por `mlflow`. Se utiliza una imagen de `MinIO Client` y el contenedor se detiene una vez que ha completado la tarea:
 
@@ -66,7 +68,7 @@ Se incluye este servicio `init` para automatizar la creación del bucket usado p
     restart: "no"
 ```
 
-#### Creación de imagen personalizada para instalar dependencias en los servicios de AirFlow
+### Creación de imagen personalizada para instalar dependencias en los servicios de AirFlow
 
 Se utiliza `uv` y el archivo `pyproject.toml` de la carpeta `airflow` para la instalación de las dependencias adicionales que tiene le proyecto:
 
@@ -87,15 +89,45 @@ RUN cd /tmp/build && uv pip install --system .
 USER airflow
 ```
 
-#### Se incluye script tipo SQL para la inicialización de una base de datos alterna a la de `mlflow`
+### Se incluye script tipo SQL para la inicialización de una base de datos alterna a la de `mlflow`
 
-Dentro de la carpeta `mysql-init` se encuentra el script `init.sql`, que será utilizado por el contenedor (con bind mount `./mysql-init:/docker-entrypoint-initdb.d`) para crear automáticamente una nueva base de datos. Esta base de datos será utilizada por el usuario para almacenar los datos de entrenamiento:
+Dentro de la carpeta `mysql-init` se encuentra el script `init.sql`, que será utilizado por el contenedor (con bind mount `./mysql-init:/docker-entrypoint-initdb.d`) para crear automáticamente una nueva base de datos y la tabla para almacenar la información obtenida del API. Esta base de datos será utilizada por el usuario para almacenar los datos de entrenamiento:
 
 ```SQL
 CREATE DATABASE IF NOT EXISTS train_data;
 CREATE USER IF NOT EXISTS 'airflow'@'%' IDENTIFIED BY 'airflow';
 GRANT ALL PRIVILEGES ON train_data.* TO 'airflow'@'%';
 FLUSH PRIVILEGES;
+
+USE train_data;
+DROP TABLE IF EXISTS forest_cover_data;
+
+CREATE TABLE forest_cover_data (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    Elevation FLOAT,
+    Aspect FLOAT,
+    Slope FLOAT,
+    Horizontal_Distance_To_Hydrology FLOAT,
+    Vertical_Distance_To_Hydrology FLOAT,
+    Horizontal_Distance_To_Roadways FLOAT,
+    Hillshade_9am FLOAT,
+    Hillshade_Noon FLOAT,
+    Hillshade_3pm FLOAT,
+    Horizontal_Distance_To_Fire_Points FLOAT,
+    Wilderness_Area VARCHAR(50),
+    Soil_Type VARCHAR(50),
+    Cover_Type VARCHAR(50),
+    batch_number INT,
+    timestamp DATETIME,
+    UNIQUE KEY unique_record (
+        Elevation, Aspect, Slope, 
+        Horizontal_Distance_To_Hydrology, Vertical_Distance_To_Hydrology,
+        Horizontal_Distance_To_Roadways,
+        Hillshade_9am, Hillshade_Noon, Hillshade_3pm,
+        Horizontal_Distance_To_Fire_Points, 
+        Wilderness_Area, Soil_Type, Cover_Type
+    )
+);
 ```
 
 Y adicionalmente, se agregan estas credenciales como variables de entorno a los servicios de airflow:
@@ -108,3 +140,7 @@ MYSQL_DATABASE: train_data
 MYSQL_USER: airflow
 MYSQL_PASSWORD: airflow
 ```
+
+## Paso 3. Pasos en Airflow
+
+Se debe ejecutar el primer dag que es `forest_cover_data_extraction` asociado al archivo `lectura_datos.py`, este realiza las dos siguientes tareas
