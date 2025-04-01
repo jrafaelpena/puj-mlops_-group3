@@ -53,25 +53,21 @@ async def read_data(group_number: int):
         raise HTTPException(status_code=400, detail="Número de grupo inválido")
     
     # Verificar si el número de conteo es adecuado
-    if timestamps[str(group_number)][1] >= 10:
+    if timestamps[str(group_number)][1] >= 9:  # Ajustado para que sean 10 batches (0-9)
         raise HTTPException(status_code=400, detail="Ya se recolectó toda la información minima necesaria")
     
     current_time = time.time()
     last_update_time = timestamps[str(group_number)][0]
     
-    # Verificar si han pasado más de 5 minutos desde la última actualización
+    # Verificar si han pasado más de MIN_UPDATE_TIME segundos desde la última actualización
     if current_time - last_update_time > MIN_UPDATE_TIME:
         # Actualizar el timestamp y obtener nuevos datos
         timestamps[str(group_number)][0] = current_time
         timestamps[str(group_number)][1] += 1  # Incrementar en 1 por cada nuevo batch
     
-    # Verificar si el número de batch es mayor a 10, si es así, no generar más datos
-    if timestamps[str(group_number)][1] > 10:
-        raise HTTPException(status_code=400, detail="Ya se recolectaron todos los lotes de datos")
-    
     # Calcular el tamaño del lote dinámicamente
     batch_size = len(data) // 10
-    random_data = get_batch_data(group_number - 1, batch_size)  # Ajustamos el índice del grupo
+    random_data = get_batch_data(timestamps[str(group_number)][1], batch_size)  # Usamos el número de batch actual
     
     # Guardar los timestamps actualizados
     with open('/data/timestamps.json', 'w') as file:
