@@ -1,5 +1,22 @@
 # Proyecto 2: Orquestación, métricas y modelos
 
+## Estructura del proyecto
+
+Las carpetas principales del proyecto son las siguientes:
+
+```md
+proyecto-2/
+├── airflow/
+├── api-data/
+├── app/
+├── minio/
+├── mlflow/
+├── mysql-init/
+└── streamlit/    
+```
+
+Cada una de estas carpetas contiene archivos como `Dockerfile`, scripts o subcarpetas utilizadas como *bind mounts* por los distintos servicios. En pasos posteriores se explicarán los archivos específicos que utiliza cada servicio.
+
 ## Paso 1. Despliegue de API que entrega dataset por lotes
 
 En este apartado se despliega un contenedor que aloja el API. Cabe resaltar que se realizaron algunas modificaciones al código para mejorar la distribución de los datos en los lotes y evitar errores al alcanzar el final del conjunto de datos:
@@ -33,7 +50,7 @@ Se realizan múltiples ejecuciones en un notebook para verificar el comportamien
 
    <img src="images/batch_1.png" width="50%"> 
 
-> Vale la pena aclarar que para nunestra implementación el tiempo de mínimo de refresco es 120 segundos.
+> Vale la pena aclarar que para la implementación final y de entrega el tiempo mínimo de refresco es de 30 segundos.
 
 ## Paso 2. Despliegue servicios del proyecto
 
@@ -43,9 +60,10 @@ Mediante el archivo `docker-compose.yaml` se levantan todos los servicios que co
 - MLflow
 - Minio
 - MySql
-- Fastapi
+- Inferene API
+- Gradio UI
 
-Se ha mantenido una estructura similar a la que se ha usado anteriormente, pero se resaltan los siguientes cambios que soportan la correcta automatización del proceso:
+Se ha mantenido una estructura similar a la utilizada anteriormente para desplegar servicios como `airflow`, `mysql`, etc., pero se destacan los siguientes cambios que permiten una correcta automatización del proceso:
 
 ### Creación de servicio `minio-setup`
 
@@ -68,25 +86,45 @@ Se incluye este servicio `init` para automatizar la creación del bucket usado p
     restart: "no"
 ```
 
-### Creación de imagen personalizada para instalar dependencias en los servicios de AirFlow
+### Creación de imagen personalizada para instalar dependencias en los servicios de Airflow
 
-Se utiliza `uv` y el archivo `pyproject.toml` de la carpeta `airflow` para la instalación de las dependencias adicionales que tiene le proyecto:
+Se utiliza `uv` y el archivo `pyproject.toml` ubicado en la carpeta `airflow` para instalar las dependencias adicionales que requiere el proyecto en la imagen de `airflow`:
 
 ```Dockerfile
 FROM apache/airflow:2.10.5
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/
 
-# Create the temp directory first
 RUN mkdir -p /tmp/build
 
-# Copy your pyproject.toml to the temp directory
 COPY pyproject.toml /tmp/build/pyproject.toml
 
 USER root
-RUN cd /tmp/build && uv pip install --system .
+RUN cd /tmp/build && uv pip install --system --python=/home/airflow/.local/bin/python .
 
 USER airflow
+```
+
+Adicionalmente, se debe modificar la sección `x-airflow-common` para que todos los servicios asociados a Airflow utilicen esta imagen con las dependencias correctamente instaladas.
+
+```yaml
+x-airflow-common:
+  &airflow-common
+  image: airflow-uv
+  build:
+    context: ./airflow
+```
+
+### Definición de user id para mitigar problemas de permisos con carpetas relacionadas a los servicios de airflow
+
+Se debe definir la variable `AIRFLOW_UID` en un archivo `.env` para especificar el ID de usuario con el que se creará el contenedor. Si no se define, carpetas como `logs`, `config` y otras serán creadas por el usuario `root`, lo que impediría que el usuario `airflow` tenga permisos para modificarlas.
+
+Ejemplo de archivo `.env`:
+
+```.env
+AIRFLOW_UID=1001
+_AIRFLOW_WWW_USER_USERNAME=proyecto-2
+_AIRFLOW_WWW_USER_PASSWORD=proyecto2
 ```
 
 ### Se incluye script tipo SQL para la inicialización de una base de datos alterna a la de `mlflow`
@@ -141,6 +179,88 @@ MYSQL_USER: airflow
 MYSQL_PASSWORD: airflow
 ```
 
-## Paso 3. Pasos en Airflow
+## Paso 3. Ejecución DAG en ariflow
 
-Se debe ejecutar el primer dag que es `forest_cover_data_extraction` asociado al archivo `lectura_datos.py`, este realiza las dos siguientes tareas
+Se debe ejecutar el DAG `1-forest_cover_training-pipeline`, asociado al archivo `training-pipeline.py`. En este se definen dos tareas: `extract_data` y `train_model`. La primera, como su nombre lo indica, se encarga de solicitar al API los datos, dejando el tiempo suficiente para que se actualicen los *batches*. Como resultado, se obtiene un 10% de datos aleatorios de cada uno de los 10 lotes del conjunto de datos.
+
+Vale la pena aclarar que, inicialmente, se consideraron otras aproximaciones, como crear un DAG para cada tarea y usar los parámetros del DAG, como `schedule_interval`, para repetir la ejecución dejando el tiempo mínimo de actualización que requiere el API. El DAG finalizaría después de completar las 10 ejecuciones, utilizando `AirflowSkipException`. Por esta razón, se incluyen otros scripts de Python con dichas pruebas.
+
+Sin embargo, por varios motivos, se optó por definir toda la estructura en un solo DAG y dividir el proceso en tareas (`extract_data` y `train_model`). 
+
+La justificación desde un punto de vista práctico es que este puede considerarse un mismo pipeline  repetitivo de entrenamiento, y no tendría mucho sentido dividirlo en DAGs distintos, ya que para eso existen las *tasks*, que permiten establecer dependencias entre pasos. Por otro lado, en equipos con múltiples procesos de ML, tener un DAG para cada paso podría saturar la vista general del entorno de trabajo (esto depende del equipo, pero es la visión compartida por los integrantes del grupo).
+
+<img src="images/dag-graph.png" width="40%"> 
+
+Ya profundizando en el DAG, la tarea `train_model` implementa Optuna y MLflow para realizar una búsqueda de hiperparámetros, optimizando dos métricas: Accuracy y Area Under the Receiver Operating Characteristic Curve (AUROC).
+
+Para cada una de estas métricas se definen 20 iteraciones, que se registran en MLflow como *runs* anidadas. Al finalizar, se guarda el modelo que obtuvo el mejor desempeño para cada una de las dos métricas definidas. Y este sería un ejemplo para ejecutar las 20 iteraciones y guardar el mejor modelo:
+
+```python
+with mlflow.start_run(experiment_id=exp_id, run_name=run_name, nested=True):
+
+      study = optuna.create_study(direction="maximize")
+      
+
+      study.optimize(
+         make_objective_rf_auroc(X_train, y_train),
+         n_trials=20,
+         callbacks=[champion_callback]
+      )
+
+      mlflow.log_params(study.best_params)
+      mlflow.log_metric("best_auroc", study.best_value)
+
+      mlflow.set_tags(
+         tags={
+            "project": "Taller MLFlow",
+            "optimizer_engine": "optuna",
+            "model_family": "RandomForestClassifier",
+            "Optimization metric": "AUROC",
+         }
+      )
+
+      model = RandomForestClassifier(**study.best_params, random_state=42, n_jobs=-1)
+      model.fit(X_train, y_train)
+      
+      test_metrics = custom_reports(model, X_test, y_test)
+      mlflow.log_metrics(test_metrics)
+
+      artifact_path = "model_rf_auroc"
+
+      mlflow.sklearn.log_model(
+         sk_model=model,
+         artifact_path=artifact_path,
+         metadata={"model_data_version": 1},
+      )
+```
+
+## Paso 4. Revisión de métricas en MLFlow
+
+Cuando el DAG culmina con éxito, se puede confirmar que hay dos modelos asociados a las *runs* principales: uno con hiperparámetros optimizados para maximizar el Accuracy y otro para maximizar el AUROC. 
+
+A continuación, se pueden observar las dos *runs* principales en MLflow, así como las *runs* anidadas correspondientes a las iteraciones de búsqueda realizadas por Optuna:
+
+<img src="images/runs_principales.png" width="50%"> 
+
+<img src="images/runs_anidadas.png" width="50%"> 
+
+Posteriormente, se registran ambos estimadores en el modelo `forest_cover`, y asignar el alias *champion* al de mejor desempeño con la herramienta de comparación:
+
+<img src="images/modelos_comparacion.png" width="70%">
+
+Se asigna el alias *champion* al modelo que optimizó el AUROC:
+
+<img src="images/champion.png" width="70%">
+
+
+## Paso 4. API inferencia y UI con streamlit
+
+Antes de usar la ui construida con `streamlit` se valida que el API para inferencia esté funcionando de manera correcta:
+
+<img src="images/api.png" width="60%">
+
+Validando que el API está logrando conectar con el servicio de `mlflow` y generando predicciones, se procede a realizar inferencias con `streamlit`:
+
+<img src="images/streamlit1.png" width="50%">
+
+<img src="images/streamlit2.png" width="50%">

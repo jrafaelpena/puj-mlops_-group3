@@ -1,12 +1,17 @@
 [project]
-name = "airflow"
+name = "app"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "optuna>=4.2.1",
-    "scikit-learn>=1.6.1",
+    "pydantic==2.10.6",
+    "fastapi==0.115.8",
+    "uvicorn==0.34.0",
+    "numpy==1.26.4",
+    "scikit-learn==1.4.0",
+    "ipykernel>=6.29.5",
+    "pandas>=2.2.3",
     "mlflow>=2.21.0",
     "boto3>=1.37.15",
 ]

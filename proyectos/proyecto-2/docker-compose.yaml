@@ -277,6 +277,26 @@ services:
       - -c
       - airflow
 
+  inference-api:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.fastapi
+    
+    image: fast-api-mlflow
+    
+    ports:
+      - "8989:8989"
+
+    command: ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8989", "--reload"]
+
+  streamlit-ui:
+    build:
+      context: ./streamlit
+    ports:
+      - "8503:8503"
+    depends_on:
+      - inference-api
+
 volumes:
   postgres-db-volume:
   mysql-data:

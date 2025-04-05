@@ -6,7 +6,7 @@ import time
 import csv
 import os
 
-MIN_UPDATE_TIME = 120  # Aca pueden cambiar el tiempo minimo para cambiar bloque de información
+MIN_UPDATE_TIME = 30
 
 app = FastAPI()
 
