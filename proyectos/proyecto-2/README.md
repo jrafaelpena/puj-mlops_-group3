@@ -61,7 +61,10 @@ Mediante el archivo `docker-compose.yaml` se levantan todos los servicios que co
 - Minio
 - MySql
 - Inferene API
-- Gradio UI
+- Streamlit UI
+
+<img src="images/servicios.png" width="60%">
+
 
 Se ha mantenido una estructura similar a la utilizada anteriormente para desplegar servicios como `airflow`, `mysql`, etc., pero se destacan los siguientes cambios que permiten una correcta automatización del proceso:
 
