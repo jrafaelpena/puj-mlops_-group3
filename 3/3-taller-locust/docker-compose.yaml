@@ -1,17 +1,19 @@
 services:
   api:
     image: jrpenagu/fast-api-mlflow:latest
-    #container_name: api-inferencia
+    # image: jrpenagu/fast-api-mlflow-optimized:latest
+    container_name: api-inferencia
     command: uv run uvicorn main:app --host 0.0.0.0 --port 8000
+    # command: uv run uvicorn main:app --host 0.0.0.0 --port 8000 --workers 2
     ports:
       - "8000:8000"
     deploy:
-      mode: replicated
-      replicas: 2
+      # mode: replicated
+      # replicas: 2
       resources:
         limits:
-          memory: 1.8G
-          cpus: 1.5
+          memory: 2G
+          cpus: 1
     networks:
       - proyecto-2_default
     restart: "no"
