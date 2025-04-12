@@ -8,7 +8,16 @@ A continuación, se observan los servicios del proyecto 2, y se puede notar que 
 
 <img src="images/servicios.png" width="65%">
 
-También se incluye la carpeta app, que se usó para crear otra imagen con una optimización para el caso de uso, posteriormente se explicará a detalle.
+Para el taller, se genera el archivo de *compose* y las carpetas relacionadas con los servicios. Aunque inicialmente se utiliza una imagen ya construida de la aplicación de inferencia, la carpeta `app` se utiliza para crear otra imagen con una optimización específica para el caso de uso, la cual se explicará más adelante en detalle. A continuación se observa la estructura final:
+
+```plain text
+3-taller-locust/
+├── app/
+├── docker-compose.yaml
+├── images/
+├── locust/
+└── README.md
+```
 
 ## Paso 1. Publicar la imagen `fast-api-mlflow` en DockerHub
 
@@ -73,11 +82,11 @@ Inicialmente, se despliegan ambos servicios limitando el API de inferencia a sol
 
 Se aumenta la cantidad de memoria con pasos de 100M y se llega a la conclusión que se requieren aproximadamente 1.3 GB para que la API funcione de base.
 
-## Paso 3. Pruebas para recursos mínimos con 10,000 usuarios
+## Paso 3. Pruebas para recursos mínimos con 10,000 usuarios y crash de la VM
 
 Inicialmente, se aumentaron considerablemente los recursos permitidos para comenzar las pruebas con los 10,000 usuarios, lo que provocó un bloqueo de la máquina virtual (VM), posiblemente debido a la alta cantidad de peticiones enviadas por `locust` sin posibilidad de detenerlo. **Este suceso permite sacar conclusiones sobre la importancia de limitar los recursos de un contenedor, teniendo en cuenta tanto los procesos que se ejecutan en el host como las necesidades del contenedor**. 
 
-Se apagó la VM y se procedió a asignar un *runtime* máximo de 150 segundos para las pruebas con `locust`, de modo que las peticiones se detuvieran luego de este tiempo, evitando así la necesidad de reiniciar la máquina.
+Se apagó la VM, suspendiendo todos sus procesos, y se procedió a asignar un *runtime* máximo de 150 segundos para las pruebas con `locust`, de modo que las peticiones se detuvieran después de este tiempo, evitando así la necesidad de reiniciar la máquina.
 
 Debido al bloqueo, se optó por comenzar con pocos usuarios e ir incrementando gradualmente, tomando decisiones basadas en el monitoreo de los recursos consumidos por el contenedor mediante `docker stats`.
 
@@ -93,35 +102,16 @@ Para garantizar que estos fueron los recursos mínimos encontrados, se soportan 
 
 En este caso, se fue laxo a la hora de establecer el límite de memoria, ya que observamos que al bajar los servicios usando `docker compose down` y volverlos a iniciar, la carga del modelo puede consumir más o menos RAM. Sin embargo, a discreción del usuario, se podría limitar la RAM a 1.6 GB sin que el contenedor se detenga por sobreuso de memoria al cargar el modelo.
 
-Habiendo identificado los recursos mínimos para que la API pueda atender solicitudes de los 10,000 usuarios, se procede a aumentar a 2 réplicas, y no más, para no sobrecargar demasiado la máquina, que solo cuenta con 4 CPU. Así se vería el nuevo archivo de `docker-compose`:
-
-```yaml
-  api:
-    image: jrpenagu/fast-api-mlflow:latest
-    #container_name: api-inferencia
-    command: uv run uvicorn main:app --host 0.0.0.0 --port 8000
-    ports:
-      - "8000:8000"
-    deploy:
-      mode: replicated
-      replicas: 2
-      resources:
-        limits:
-          memory: 1.8G
-          cpus: 1.5
-    networks:
-      - proyecto-2_default
-    restart: "no"
-```
-
-Al intentar levantar los servicios se obtiene el siguiente error:
+Habiendo identificado los recursos mínimos para que la API pueda atender solicitudes de los 10,000 usuarios, se consideró aumentar a 2 réplicas. Sin embargo, esto no fue posible debido al mapeo de puertos en Docker, ya que al escalar el servicio y mantener el mismo puerto publicado, cada contenedor intenta exponerse en el mismo puerto del host, lo que provoca un conflicto de asignación.
 
 <img src="images/error_puertos.png" width="70%">
 
+En ese momento, se reportó el error al profesor y, al no mostrarle el archivo YAML donde erróneamente se expuso el puerto, se mencionó que esto se solucionaría con el uso de un proxy o balanceador como NGINX o Traefik. Sin embargo, dado que los tiempos de respuesta eran demasiado altos, se propuso el reto de fijar algunos recursos razonables y evaluar cuál es el máximo número de usuarios para que la aplicación responda en tiempos coherentes.
 
-Se recibió feedback por parte del profesor, donde se definió que esto puede solucionarse mediante el uso de un proxy o balanceador como NGINX o Traefik, aunque esto se abordará en etapas posteriores de la clase. Por el momento, se hizo la observación de que los tiempos de respuesta están demasiado altos, y se propuso el reto de fijar algunos recursos razonables y evaluar cuál es el máximo de usuarios para que la aplicación responda en tiempos coherentes.
+**<span style="color:red">¡¡¡Posteriormente, el profesor identificó el problema y se procedió con el aumento de réplicas (Sección del paso 5). No obstante, se dejó documentada la sección que muestra el trabajo realizado para determinar el número de usuarios que la aplicación puede atender con tiempos de respuesta aceptables, así como la introducción de una imagen optimizada (que carga el modelo desde el inicio, entre otras mejoras)!!!</span>**
 
-## Paso 4. Modificación al API para optimización del proceso y soporte de múltiples workers en uvicorn
+
+## Paso 4. Modificación al API para optimización del proceso y soporte de múltiples workers en uvicorn (aún no se había logrado aumentar réplicas)
 
 Investigando la razón por la que la API no estaba utilizando más CPU, se encontró que, por defecto, Uvicorn usa solo un *worker*, y que es necesario declarar explícitamente el número de *workers* en los parámetros si se desea aumentar esta capacidad.
 
@@ -153,3 +143,55 @@ Finalmente, se define usar la primera combinación que fue la que mejor desempe�
 <img src="images/usuarios_optimo.png" width="20%">
 
 <img src="images/chart_optimo.png" width="50%">
+
+## Paso 5. Aumento de réplicas y observaciones
+
+Conociendo la solución de remover el mapeo de puerto, se procede a realizar experimentos aumentando el número de réplicas. El *set up* que se utilizará para los experimentos es el siguiente:
+
+- **Imagen**: Optimizada, con carga del modelo en el *start-up* para evitar múltiples cargas durante las solicitudes.  
+- **CPU asignada (por réplica)**: 1  
+- **RAM asignada (por réplica)**: 1.3 GB  
+- **Réplicas**: 1–3  
+
+Los resultados son los siguientes:
+
+<img src="images/tabla_resumen.png" width="40%">
+
+#### 1. **Escalado a 2 réplicas**
+- Mejora notable respecto a 1 réplica, pero los tiempos **no se dividen por la mitad**:
+  - **35 usuarios:** baja de 2,800 ms → 1,100 ms.
+  - **70 usuarios:** de 7,900 ms → 4,300 ms.
+  - **100 usuarios:** de 8,000 ms → 6,600 ms.
+- Aunque hay mejoras, la **disminución no es lineal ni proporcional**.
+- Con 1000 usuarios aún hay latencias altas (71,000 ms).
+
+A pesar de aumentar las réplicas puede que no sean suficiente para contrarestar el cuello de botella que genera la inferencia en cargas más altas, porque sí se observa una disminución con cargas normales, pero con cargas altas persiste el problema.
+
+
+#### 2. **Escalado a 3 réplicas**
+- Rendimiento **mucho más estable** incluso con cargas altas:
+  - **10 usuarios:** 70 ms (igual que con 2 réplicas).
+  - **1000 usuarios:** 66,000 ms (ligeramente mejor que con 2 réplicas).
+- Para cargas medias:
+  - **35 usuarios:** 150 ms (muy buena mejora vs 1,100 ms con 2 réplicas).
+  - **70 usuarios:** 3,000 ms.
+  - **100 usuarios:** 5,400 ms.
+
+Esto sugiere que a partir de 3 réplicas el sistema maneja mejor la concurrencia, pero **los cuellos de botella persisten** a cargas muy altas. 
+
+Se realiza una observación importante: a medida que se aumentaron las réplicas, la CPU dejó de ser un cuello de botella. Cuando solo había una réplica, el contenedor utilizaba el 100 % de la CPU. Con dos réplicas, los contenedores también se acercaban al 100 %, aunque sin alcanzarlo por completo. Ya con tres réplicas, los niveles de uso fueron mucho menores. Esto permitió identificar que se podrían aumentar significativamente las réplicas asignando menos recursos de CPU.
+
+Luego de distintos intentos y configuraciones —algunos de los cuales causaron fallos en la máquina— se logró alcanzar un escenario estable con **5 réplicas, asignando 0.4 CPU** a cada una. Estos niveles ya hacen que el sistema trabaje cerca de su capacidad máxima tanto en memoria como en CPU:
+
+<img src="images/2.png" width="60%">
+
+Ya con este escenario, se obtienen tiempos menores para los 10,000 usuarios. Con una mediana de 56,000 ms, se logró una disminución del 23 % respecto al escenario con una sola réplica, manteniendo un promedio de 20 respuestas por segundo.
+
+<img src="images/1000_5replicas_locust.png" width="60%">
+
+Adicionalmente, se identificó el punto óptimo de usuarios para el cual el sistema logra responder en tiempos coherentes. Este punto se encuentra entre 60 y 70 usuarios, casi duplicando el mínimo de usuarios concurrentes alcanzado en el escenario con una sola réplica. A continuación, se presentan los resultados obtenidos con `locust`:
+
+<img src="images/version_final_locust.png" width="60%">
+
+<img src="images/version_final_tabla.png" width="60%">
+
