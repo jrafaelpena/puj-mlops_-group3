@@ -155,7 +155,7 @@ Conociendo la solución de remover el mapeo de puerto, se procede a realizar exp
 
 Los resultados son los siguientes:
 
-<img src="images/tabla_resumen.png" width="40%">
+<img src="images/tabla_resumen.png" width="50%">
 
 #### 1. **Escalado a 2 réplicas**
 - Mejora notable respecto a 1 réplica, pero los tiempos **no se dividen por la mitad**:
