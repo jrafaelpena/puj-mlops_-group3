@@ -28,7 +28,8 @@ dev/
 
 .env
 
-minio/
+proyectos/proyecto-2/minio/*
+2-mlflow/minio/
 
 mlruns/
 
