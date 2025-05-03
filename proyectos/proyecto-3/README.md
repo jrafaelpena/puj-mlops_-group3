@@ -1,4 +1,9 @@
 
+```bash
+docker tag airflow-uv:latest jrpenagu/airflow-uv-ml:latest
+docker push jrpenagu/airflow-uv-ml:latest 
+```
+
 ```yaml
 apiVersion: v1
 kind: Namespace
