@@ -2,8 +2,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: minio
+  namespace: project-3-mlops
   labels:
     app: minio
+    principal_app: mlflow
 spec:
   replicas: 1
   selector:
@@ -38,6 +40,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: minio
+  namespace: project-3-mlops
 spec:
   type: NodePort
   selector:
@@ -51,5 +54,3 @@ spec:
       port: 9001
       targetPort: 9001
       nodePort: 30001
-  selector:
-    app: minio

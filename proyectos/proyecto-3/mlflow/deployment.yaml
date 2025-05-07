@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow
+  namespace: project-3-mlops
+  labels:
+    app: mlflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlflow
+  template:
+    metadata:
+      labels:
+        app: mlflow
+    spec:
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox
+          command: ['sh', '-c', 'until nc -z mysql 3306; do echo waiting for mysql; sleep 2; done;']
+        - name: wait-for-minio
+          image: busybox
+          command: ['sh', '-c', 'until nc -z minio 9000; do echo waiting for minio; sleep 2; done;']
+      containers:
+        - name: mlflow
+          image: jrpenagu/mlflow-uv:latest
+          ports:
+            - containerPort: 5000
+          command: ["/app/.venv/bin/python", "-m", "mlflow", "server"]
+          args:
+          - "--backend-store-uri=mysql+pymysql://mlflow_user:mlflow@mysql:3306/mlflow_db"
+          - "--default-artifact-root=s3://mlflows3/artifacts"
+          - "--host=0.0.0.0"
+          - "--port=5000"
+          - "--serve-artifacts"
+          env:
+            - name: MLFLOW_S3_ENDPOINT_URL
+              value: http://minio:9000
+            - name: AWS_ACCESS_KEY_ID
+              value: minioadmin
+            - name: AWS_SECRET_ACCESS_KEY
+              value: minioadmin
+            - name: BACKEND_STORE_URI
+              value: mysql+pymysql://mlflow_user:mlflow@mysql:3306/mlflow_db
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlflow
+  namespace: project-3-mlops
+spec:
+  type: NodePort
+  selector:
+    app: mlflow
+  ports:
+    - port: 5000
+      targetPort: 5000
+      nodePort: 30010

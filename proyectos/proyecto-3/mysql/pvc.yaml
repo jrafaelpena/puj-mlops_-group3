@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: minio-pvc
+  name: mysql-pvc
   namespace: project-3-mlops
 spec:
   accessModes:
