@@ -136,7 +136,6 @@ def training_pipeline():
 
         print("Preprocessing completed. clean_data table created with shape:", final_df.shape)
 
-    
     extract_data() >> preprocess_and_split()
 
 training_pipeline_dag = training_pipeline()
