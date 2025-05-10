@@ -5,6 +5,7 @@ metadata:
   namespace: project-3-mlops
   labels:
     app: mlflow
+    principal_app: mlflow
 spec:
   replicas: 1
   selector:
