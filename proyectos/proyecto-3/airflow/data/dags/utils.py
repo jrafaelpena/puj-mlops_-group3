@@ -7,7 +7,9 @@ import mlflow
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import cross_val_score
 import numpy as np
-
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
 
 
 def custom_reports(model, X, y):
@@ -68,7 +70,7 @@ def champion_callback(study, frozen_trial):
       else:
           print(f"Initial trial {frozen_trial.number} achieved value: {frozen_trial.value}")
 
-def make_objective_rf_acc(X, y):
+def make_objective_rf_acc(X, y, preprocessor):
     def objective_rf_acc(trial):
         with mlflow.start_run(nested=True):
             params = {
@@ -80,21 +82,24 @@ def make_objective_rf_acc(X, y):
                 'max_samples': trial.suggest_float('max_samples', 0.7, 1.0)
             }
 
-            model = RandomForestClassifier(**params, random_state=42, n_jobs=-1)
+            clf = Pipeline([
+                ("preprocess", preprocessor),
+                ("model", RandomForestClassifier(**params, random_state=42, n_jobs=-1))
+            ])
 
             skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
-            scores = cross_val_score(model, X, y, cv=skf, scoring="accuracy", n_jobs=-1)
-            scores_2 = cross_val_score(model, X, y, cv=skf, scoring="roc_auc_ovo", n_jobs=-1)
+            acc_scores = cross_val_score(clf, X, y, cv=skf, scoring="accuracy", n_jobs=-1)
+            auroc_scores = cross_val_score(clf, X, y, cv=skf, scoring="roc_auc_ovo", n_jobs=-1)
 
             mlflow.log_params(params)
-            mlflow.log_metric("mean_accuracy", np.mean(scores))
-            mlflow.log_metric("mean_auroc", np.mean(scores_2))
+            mlflow.log_metric("mean_accuracy", np.mean(acc_scores))
+            mlflow.log_metric("mean_auroc", np.mean(auroc_scores))
 
-            return np.mean(scores)
+            return np.mean(acc_scores)
     return objective_rf_acc
-    
-def make_objective_rf_auroc(X, y):
+
+def make_objective_rf_auroc(X, y, preprocessor):
     def objective_rf_auroc(trial):
         with mlflow.start_run(nested=True):
             params = {
@@ -106,16 +111,19 @@ def make_objective_rf_auroc(X, y):
                 'max_samples': trial.suggest_float('max_samples', 0.7, 1.0)
             }
 
-            model = RandomForestClassifier(**params, random_state=42, n_jobs=-1)
+            clf = Pipeline([
+                ("preprocess", preprocessor),
+                ("model", RandomForestClassifier(**params, random_state=42, n_jobs=-1))
+            ])
 
             skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
-            scores = cross_val_score(model, X, y, cv=skf, scoring="roc_auc_ovo", n_jobs=-1)
-            scores_2 = cross_val_score(model, X, y, cv=skf, scoring="accuracy", n_jobs=-1)
+            auroc_scores = cross_val_score(clf, X, y, cv=skf, scoring="roc_auc_ovo", n_jobs=-1)
+            acc_scores = cross_val_score(clf, X, y, cv=skf, scoring="accuracy", n_jobs=-1)
 
             mlflow.log_params(params)
-            mlflow.log_metric("mean_auroc", np.mean(scores))
-            mlflow.log_metric("mean_accuracy", np.mean(scores_2))
+            mlflow.log_metric("mean_auroc", np.mean(auroc_scores))
+            mlflow.log_metric("mean_accuracy", np.mean(acc_scores))
 
-            return np.mean(scores)
+            return np.mean(auroc_scores)
     return objective_rf_auroc
