@@ -41,6 +41,8 @@ os.environ['MLFLOW_S3_ENDPOINT_URL'] = "http://10.43.101.189:30000"
 os.environ['AWS_ACCESS_KEY_ID'] = 'minioadmin'
 os.environ['AWS_SECRET_ACCESS_KEY'] = 'project3'
 
+# Parámetros entrenamiento
+ITERATIONS = 5
 
 @dag(
     dag_id='1-diabetes-training-pipeline',
@@ -49,7 +51,7 @@ os.environ['AWS_SECRET_ACCESS_KEY'] = 'project3'
     catchup=False
 )
 def training_pipeline():
-    
+
     @task
     def extract_data():
         engine = create_engine(CONNECTION_STRING)
@@ -181,7 +183,7 @@ def training_pipeline():
 
                 study.optimize(
                     make_objective_rf_acc(X_train, y_train, preprocessor),
-                    n_trials=15,
+                    n_trials=ITERATIONS,
                     callbacks=[champion_callback]
                 )
 
@@ -217,7 +219,7 @@ def training_pipeline():
         except Exception as e:
             print(f"Error in train_model_accuracy: {e}")
             raise
-    
+ 
     @task
     def train_model_auroc():
         print("Starting model training process for diabetes dataset")
@@ -260,7 +262,7 @@ def training_pipeline():
 
                 study.optimize(
                     make_objective_rf_auroc(X_train, y_train, preprocessor),
-                    n_trials=15,
+                    n_trials=ITERATIONS,
                     callbacks=[champion_callback]
                 )
 
