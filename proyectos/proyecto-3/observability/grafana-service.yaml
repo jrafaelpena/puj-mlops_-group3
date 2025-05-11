@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    meta.helm.sh/release-name: kube-prom-stack
+    meta.helm.sh/release-namespace: observability
+  creationTimestamp: "2025-05-11T05:28:51Z"
+  labels:
+    app.kubernetes.io/instance: kube-prom-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/version: 9.3.8
+    helm.sh/chart: grafana-6.51.2
+  name: kube-prom-stack-grafana
+  namespace: observability
+  resourceVersion: "969"
+  uid: a2f04c31-076f-4587-8c7b-d8efdd9864fc
+spec:
+  clusterIP: 10.152.183.243
+  clusterIPs:
+  - 10.152.183.243
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: http-web
+    port: 80
+    protocol: TCP
+    targetPort: 3000
+  selector:
+    app.kubernetes.io/instance: kube-prom-stack
+    app.kubernetes.io/name: grafana
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}

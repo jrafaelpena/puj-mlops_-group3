@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    meta.helm.sh/release-name: kube-prom-stack
+    meta.helm.sh/release-namespace: observability
+  creationTimestamp: "2025-05-11T05:28:51Z"
+  labels:
+    app: kube-prometheus-stack-prometheus
+    app.kubernetes.io/instance: kube-prom-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: kube-prometheus-stack
+    app.kubernetes.io/version: 45.5.0
+    chart: kube-prometheus-stack-45.5.0
+    heritage: Helm
+    release: kube-prom-stack
+    self-monitor: "true"
+  name: kube-prom-stack-kube-prome-prometheus
+  namespace: observability
+  resourceVersion: "971"
+  uid: 70420b55-d1bf-450a-ad3c-2c2e916b23a5
+spec:
+  clusterIP: 10.152.183.142
+  clusterIPs:
+  - 10.152.183.142
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: http-web
+    port: 9090
+    protocol: TCP
+    targetPort: 9090
+  selector:
+    app.kubernetes.io/name: prometheus
+    prometheus: kube-prom-stack-kube-prome-prometheus
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}
