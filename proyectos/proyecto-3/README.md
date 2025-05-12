@@ -1,4 +1,7 @@
-# Proyecto 3: Kubernetes, prometheus y grafana
+# Proyecto 3: Kubernetes, Prometheus y Grafana
+
+### [🎥 Ver video en YouTube](https://youtu.be/SKmrt0lwFZg)
+
 
 ## Arquitecura del proyecto
 
