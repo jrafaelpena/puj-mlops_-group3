@@ -36,3 +36,5 @@ mlruns/
 logs/
 config/
 plugins/
+
+*.pkl
