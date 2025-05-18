@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: inference-api
-          image: jrpenagu/fast-api-iris:1.0
+          image: jrpenagu/fast-api-iris:e2a652c
           ports:
             - containerPort: 8989
           command: ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8989"]
