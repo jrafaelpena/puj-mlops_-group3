@@ -2,6 +2,8 @@ name: CI for Taller Inference API
 
 on:
   push:
+    branches:
+      - main
     paths:
       - '4/taller-ci-cd/api-inferencia/**'
       - '4/taller-ci-cd/params.yaml'
