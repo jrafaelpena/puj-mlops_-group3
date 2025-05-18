@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: locust
+  namespace: taller-ci-cd
+  labels:
+    app: locust
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: locust
+  template:
+    metadata:
+      labels:
+        app: locust
+    spec:
+      containers:
+        - name: locust
+          image: jrpenagu/locust-iris:1.0
+          ports:
+            - containerPort: 8089
+          env:
+            - name: API_URL
+              value: http://inference-api:8989
+          command: ["locust", "-f", "locustfile.py", "--host", "$(API_URL)"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: locust
+  namespace: taller-ci-cd
+spec:
+  type: NodePort
+  selector:
+    app: locust
+  ports:
+    - port: 8089
+      targetPort: 8089
+      nodePort: 31989
