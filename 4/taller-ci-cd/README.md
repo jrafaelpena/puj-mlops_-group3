@@ -333,6 +333,14 @@ Finalmente, se aplica este manifiesto con:
 ```bash
 kubectl apply -f argo-cd/app.yaml
 ```
+
+Y para monitoreo en UI:
+
+```bash
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d && echo
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+```
+
 ---
 
 ## Resultado
@@ -341,3 +349,11 @@ kubectl apply -f argo-cd/app.yaml
 * Los manifiestos se actualizan con el nuevo tag.
 * Argo CD detecta los cambios y sincroniza el estado del clúster automáticamente.
 * Prometheus y Grafana monitorean métricas de la API.
+
+Como última prueba, se modifican los parámetros del modelo y se realiza un nuevo *push* al repositorio. Automáticamente, Argo CD detecta el cambio, sincroniza la aplicación y actualiza los Pods con la nueva imagen `jrpenagu/fast-api-iris:2e957d9`:
+
+<img src="images/ultima_prueba_git.png" width="70%">
+
+<img src="images/ultima_prueba_argo.png" width="70%">
+
+<img src="images/ultima_prueba_argo_2.png" width="70%">
