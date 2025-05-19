@@ -1,0 +1,24 @@
+# argo-cd/app.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: taller-ci-cd
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: 'https://github.com/jrafaelpena/puj-mlops_-group3.git'
+    targetRevision: main
+    path: 4/taller-ci-cd/manifests
+
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: taller-ci-cd
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
