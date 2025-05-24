@@ -1,0 +1,13 @@
+[project]
+name = "airflow"
+version = "0.2.0"
+description = "Creation of an ariflow image with airflow:2.10.5 as base image and using uv for installing dependencies."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "scikit-learn>=1.6.1",
+    "mlflow>=2.21.0",
+    "boto3>=1.37.15",
+    "shap>=0.45.0",
+    "deepchecks[tabular]>=0.18.1"
+]
