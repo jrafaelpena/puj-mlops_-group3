@@ -38,3 +38,5 @@ config/
 plugins/
 
 *.pkl
+
+test-jupyter/

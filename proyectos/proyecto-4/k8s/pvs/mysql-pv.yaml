@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: minio-pv
+  name: mysql-pv
 spec:
   capacity:
-    storage: 7Gi
+    storage: 5Gi
   accessModes:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   hostPath:
-    path: /home/estudiante/curso-mlops/storage/minio
+    path: /home/estudiante/curso-mlops/storage/mysql

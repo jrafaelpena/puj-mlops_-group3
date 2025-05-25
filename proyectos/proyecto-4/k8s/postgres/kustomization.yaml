@@ -4,8 +4,5 @@ kind: Kustomization
 namespace: project-4
 
 resources:
-  - minio.yaml
-  - mlflow.yaml
-  - mysql.yaml
-  - minio-pvc.yaml
-  - mysql-pvc.yaml
+  - postgres.yaml
+  - postgres-pvc.yaml
