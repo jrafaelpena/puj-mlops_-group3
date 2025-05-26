@@ -1,9 +1,10 @@
-executor: KubernetesExecutor
+environment:
+  executor: KubernetesExecutor
 
 images:
   airflow:
-    repository: <DOCKERHUB USER>/airflow
-    tag: <TAG>
+    repository: jrpenagu/airflow-ml
+    tag: "1.0"
     pullPolicy: IfNotPresent
 
 airflow:
@@ -33,10 +34,11 @@ airflow:
 dags:
   gitSync:
     enabled: true
-    repo: https://github.com/<USUARIO>/<REPO_DAGS>.git
+    repo: https://github.com/jrafaelpena/puj-mlops_-group3.git
     branch: main
     rev: HEAD
     depth: 1
+    subPath: proyectos/proyecto-4/apps
 
 postgresql:
   enabled: false
@@ -51,12 +53,12 @@ externalDatabase:
   database: airflow
   type: postgres
 
-  logs:
-    enabled: true
-    existingClaim: airflow-logs-pvc
-  dags:
-    enabled: true
-    existingClaim: airflow-dags-pvc
+dags:
+  enabled: true
+  existingClaim: airflow-dags-pvc
+logs:
+  enabled: true
+  existingClaim: airflow-logs-pvc
 
 service:
   type: ClusterIP
