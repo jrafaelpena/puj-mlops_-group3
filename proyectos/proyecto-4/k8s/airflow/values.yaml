@@ -1,0 +1,62 @@
+executor: KubernetesExecutor
+
+images:
+  airflow:
+    repository: <DOCKERHUB USER>/airflow
+    tag: <TAG>
+    pullPolicy: IfNotPresent
+
+airflow:
+  config:
+    AIRFLOW__CORE__EXECUTOR: KubernetesExecutor
+    AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+    AIRFLOW__LOGGING__REMOTE_LOGGING: "True"
+    AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER: s3://airflow-logs
+    AIRFLOW__LOGGING__REMOTE_LOG_CONN_ID: minio_conn
+
+  connections:
+    - id: postgres_default
+      type: postgres
+      host: postgres
+      login: airflow
+      password: airflow
+      port: 5432
+      schema: airflow
+    - id: minio_conn
+      type: s3
+      host: minio
+      login: minio
+      password: miniopass
+      port: 9000
+      extra: '{"endpoint_url":"http://minio:9000","region_name":"us-east-1"}'
+
+dags:
+  gitSync:
+    enabled: true
+    repo: https://github.com/<USUARIO>/<REPO_DAGS>.git
+    branch: main
+    rev: HEAD
+    depth: 1
+
+postgresql:
+  enabled: false
+redis:
+  enabled: false
+
+externalDatabase:
+  host: postgres
+  port: 5432
+  user: airflow
+  password: airflow
+  database: airflow
+  type: postgres
+
+  logs:
+    enabled: true
+    existingClaim: airflow-logs-pvc
+  dags:
+    enabled: true
+    existingClaim: airflow-dags-pvc
+
+service:
+  type: ClusterIP
