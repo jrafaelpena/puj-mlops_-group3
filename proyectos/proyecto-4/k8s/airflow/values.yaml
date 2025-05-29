@@ -2,6 +2,11 @@ airflowVersion: 2.10.5
 
 executor: KubernetesExecutor
 
+image:
+  repository: jrpenagu/airflow-ml
+  tag: "1.0"
+  pullPolicy: IfNotPresent
+
 postgresql:
   enabled: true
   image:
