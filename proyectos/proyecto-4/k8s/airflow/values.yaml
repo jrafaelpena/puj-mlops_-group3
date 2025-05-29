@@ -13,9 +13,7 @@ postgresql:
   persistence:
     enabled: true
     size: 8Gi
-  postgresqlDatabase: airflow
-  postgresqlUsername: airflowmlops
-  postgresqlPassword: airflowmlops
+  auth:
 
 redis:
   enabled: true
