@@ -1,5 +1,4 @@
 airflowVersion: 2.10.5
-
 executor: KubernetesExecutor
 
 image:
@@ -43,19 +42,12 @@ logs:
 
 ingress:
   web:
-    enabled: true
-
-    hosts:
-      - name: airflow.tu-dominio.com
-        path: /
-        pathType: ImplementationSpecific
-        tls:
-          enabled: true
-          secretName: airflow-tls
+    enabled: false
 
 webserver:
   service:
-    type: ClusterIP
+    type: NodePort
+    nodePort: 30080
 
 rbac:
   create: true
@@ -71,7 +63,7 @@ workers:
       cpu: 500m
       memory: 1Gi
     limits:
-      cpu: 1
+      cpu: 2
       memory: 2Gi
 
 scheduler:
