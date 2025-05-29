@@ -44,15 +44,14 @@ logs:
 ingress:
   web:
     enabled: true
+
     hosts:
-      - host: airflow.tu-dominio.com
-        paths:
-          - path: /
-            pathType: ImplementationSpecific
-    tls:
-      - secretName: airflow-tls
-        hosts:
-          - airflow.tu-dominio.com
+      - name: airflow.tu-dominio.com
+        path: /
+        pathType: ImplementationSpecific
+        tls:
+          enabled: true
+          secretName: airflow-tls
 
 webserver:
   service:
