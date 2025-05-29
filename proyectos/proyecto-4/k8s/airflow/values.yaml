@@ -46,8 +46,7 @@ ingress:
 
 webserver:
   service:
-    type: NodePort
-    nodePort: 30080
+    type: ClusterIP
 
 rbac:
   create: true
