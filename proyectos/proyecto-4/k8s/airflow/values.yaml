@@ -112,5 +112,6 @@ workers:
       cpu: 200m
       memory: 512Mi
 
-migrations:
+runMigrations:
+  enabled: true
   ttlSecondsAfterFinished: 0
