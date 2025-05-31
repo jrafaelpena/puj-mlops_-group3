@@ -111,3 +111,6 @@ workers:
     limits:
       cpu: 200m
       memory: 512Mi
+
+migrations:
+  ttlSecondsAfterFinished: 0
