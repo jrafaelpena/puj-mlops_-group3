@@ -47,7 +47,18 @@ ingress:
 webserver:
   service:
     type: ClusterIP
+  env:
+    - name: AIRFLOW__KUBERNETES__IN_CLUSTER
+      value: "False"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
 
+rbac:
   create: true
 
 serviceAccount:
@@ -55,7 +66,7 @@ serviceAccount:
   name: airflow-sa
 
 scheduler:
-  extraEnv:
+  env:
     - name: AIRFLOW__KUBERNETES__IN_CLUSTER
       value: "False"
   resources:
@@ -67,19 +78,7 @@ scheduler:
       memory: 512Mi
 
 triggerer:
-  extraEnv:
-    - name: AIRFLOW__KUBERNETES__IN_CLUSTER
-      value: "False"
-  resources:
-    requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
-      cpu: 200m
-      memory: 512Mi
-
-web:
-  extraEnv:
+  env:
     - name: AIRFLOW__KUBERNETES__IN_CLUSTER
       value: "False"
   resources:
@@ -92,7 +91,7 @@ web:
 
 statsd:
   enabled: true
-  extraEnv:
+  env:
     - name: AIRFLOW__KUBERNETES__IN_CLUSTER
       value: "False"
   resources:
