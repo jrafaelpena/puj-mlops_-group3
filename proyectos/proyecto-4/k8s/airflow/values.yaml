@@ -14,10 +14,10 @@ postgresql:
     enabled: true
     size: 8Gi
   auth:
+    postgresPassword: "MiPasswordMuySecreto123"
 
 redis:
   enabled: true
-
 images:
   redis:
     repository: redis
