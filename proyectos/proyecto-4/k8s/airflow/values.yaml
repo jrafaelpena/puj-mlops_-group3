@@ -1,5 +1,5 @@
 airflowVersion: 2.10.5
-executor: KubernetesExecutor
+executor: LocalExecutor
 
 image:
   repository: jrpenagu/airflow-ml
