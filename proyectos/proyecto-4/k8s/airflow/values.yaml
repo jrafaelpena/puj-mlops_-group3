@@ -1,4 +1,5 @@
 airflowVersion: 2.10.5
+
 executor: LocalExecutor
 
 image:
@@ -18,6 +19,7 @@ postgresql:
 
 redis:
   enabled: true
+
 images:
   redis:
     repository: redis
@@ -46,37 +48,67 @@ webserver:
   service:
     type: ClusterIP
 
-rbac:
   create: true
 
 serviceAccount:
   create: true
   name: airflow-sa
 
+scheduler:
+  extraEnv:
+    - name: AIRFLOW__KUBERNETES__IN_CLUSTER
+      value: "False"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+
+triggerer:
+  extraEnv:
+    - name: AIRFLOW__KUBERNETES__IN_CLUSTER
+      value: "False"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+
+web:
+  extraEnv:
+    - name: AIRFLOW__KUBERNETES__IN_CLUSTER
+      value: "False"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+
+statsd:
+  enabled: true
+  extraEnv:
+    - name: AIRFLOW__KUBERNETES__IN_CLUSTER
+      value: "False"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 100m
+      memory: 256Mi
+
 workers:
   podAnnotations: {}
   resources:
     requests:
-      cpu: 500m
-      memory: 1Gi
+      cpu: 100m
+      memory: 256Mi
     limits:
-      cpu: 2
-      memory: 2Gi
-
-scheduler:
-  resources:
-    requests:
-      cpu: 500m
-      memory: 1Gi
-    limits:
-      cpu: 1
-      memory: 2Gi
-
-web:
-  resources:
-    requests:
-      cpu: 300m
+      cpu: 200m
       memory: 512Mi
-    limits:
-      cpu: 600m
-      memory: 1Gi
