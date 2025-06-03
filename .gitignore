@@ -40,3 +40,5 @@ plugins/
 *.pkl
 
 test-jupyter/
+
+.vscode/
