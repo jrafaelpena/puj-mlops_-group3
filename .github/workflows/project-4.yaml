@@ -1,0 +1,73 @@
+name: CI for project-4
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'proyectos/proyecto-4/apps/inference-api/**'
+      - 'proyectos/proyecto-4/apps/streamlit/**'
+      - '!proyectos/proyecto-4/apps/inference-api/README.md'
+      - '!proyectos/proyecto-4/apps/streamlit/README.md'
+  workflow_dispatch:  # Permite la activación manual
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME_API: jrpenagu/fastapi-house-prices
+      IMAGE_NAME_STREAMLIT: jrpenagu/streamlit-house-prices
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract short SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push with cache image for API
+        uses: docker/build-push-action@v6
+        with:
+          context: proyectos/proyecto-4/apps/inference-api
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME_API }}:${{ steps.vars.outputs.sha_short }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push with cache image for streamlit
+        uses: docker/build-push-action@v6
+        with:
+          context: proyectos/proyecto-4/apps/streamlit
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME_STREAMLIT }}:${{ steps.vars.outputs.sha_short }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Update API manifest with new image tag
+        run: |
+          sed -i "s|image: .*|image: $IMAGE_NAME_API:${{ steps.vars.outputs.sha_short }}|" proyectos/proyecto-4/k8s/inference-api/inference-api.yaml
+      
+      - name: Update streamlit manifest with new image tag
+        run: |
+          sed -i "s|image: .*|image: $IMAGE_NAME_STREAMLIT:${{ steps.vars.outputs.sha_short }}|" proyectos/proyecto-4/k8s/streamlit/streamlit.yaml
+
+      - name: Commit updated manifest
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add proyectos/proyecto-4/k8s/inference-api/inference-api.yaml
+          git add proyectos/proyecto-4/k8s/streamlit/streamlit.yaml
+          git commit -m "Update image tags to $IMAGE_NAME_API:${{ steps.vars.outputs.sha_short }} $IMAGE_NAME_STREAMLIT:${{ steps.vars.outputs.sha_short }}"
+          git push
