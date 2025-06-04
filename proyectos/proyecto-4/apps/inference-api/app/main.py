@@ -1,6 +1,6 @@
 import os
 from fastapi import FastAPI, HTTPException, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator, ConfigDict
 import numpy as np
 import mlflow.pyfunc
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
@@ -48,26 +48,31 @@ def load_model():
 
 
 class HousePredictionRequest(BaseModel):
-    bed: int = Field(..., ge=1, le=190, description="Número de habitaciones")
-    bath: int = Field(..., ge=1, le=163, description="Número de baños")
-    acre_lot: float = Field(..., ge=0.0, le=100000.0, description="Tamaño del lote en acres")
-    city: str = Field(..., min_length=1, max_length=100, description="Ciudad")
-    state: str = Field(..., min_length=1, max_length=50, description="Estado")
-    zip_code: int = Field(..., ge=1000, le=99999, description="Código postal")
-    house_size: int = Field(..., ge=1500, le=1560780, description="Tamaño de la casa en pies cuadrados")
-
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "bed": 3,
                 "bath": 2,
                 "acre_lot": 0.23,
-                "city": "Pleasantville",
-                "state": "New Jersey",
-                "zip_code": 8232,
+                "city": "pleasantville",
+                "state": "new jersey",
+                "zip_code": "8232",
                 "house_size": 1656
             }
         }
+    )
+    
+    bed: int = Field(..., ge=1, le=190, description="Número de habitaciones", example=3)
+    bath: int = Field(..., ge=1, le=163, description="Número de baños", example=2)
+    acre_lot: float = Field(..., ge=0.0, le=100000.0, description="Tamaño del lote en acres", example=0.23)
+    city: str = Field(..., min_length=1, max_length=100, description="Ciudad", example="pleasantville")
+    state: str = Field(..., min_length=1, max_length=50, description="Estado", example="new jersey")
+    zip_code: str = Field(..., min_length=4, max_length=5, description="Código postal", example="8232")
+    house_size: int = Field(..., ge=1500, le=1560780, description="Tamaño de la casa en pies cuadrados", example=1656)
+
+    @validator("city", "state", pre=True)
+    def to_lowercase(cls, v):
+        return v.lower()
 
 
 @app.post("/predict/")
@@ -83,6 +88,11 @@ def predict(request: HousePredictionRequest):
     with REQUEST_LATENCY.time():
         try:
             input_dict = request.dict()
+            
+            # Ensure correct data types for model compatibility
+            input_dict['acre_lot'] = float(input_dict['acre_lot'])
+            input_dict['zip_code'] = str(input_dict['zip_code'])
+            
             input_df = pd.DataFrame([input_dict])
 
             # Realiza predicción
@@ -118,7 +128,7 @@ def read_root():
             "acre_lot": "Tamaño del lote en acres (0.0-100000.0)",
             "city": "Ciudad",
             "state": "Estado",
-            "zip_code": "Código postal (1000-99999)",
+            "zip_code": "Código postal (string, 4-5 dígitos)",
             "house_size": "Tamaño de la casa en pies cuadrados (1500-1560780)"
         }
     }
