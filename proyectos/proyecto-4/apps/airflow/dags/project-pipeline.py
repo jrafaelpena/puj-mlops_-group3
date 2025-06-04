@@ -352,6 +352,14 @@ def training_pipeline():
         client.set_registered_model_alias("house_prices", new_model_alias, new_model_version)
         print(f"[MLflow] Model version {new_model_version} assigned alias '{new_model_alias}'")
 
+        if batch == 0:
+            try:
+                response = requests.post(INFERENCE_API_URL, timeout=30)
+                response.raise_for_status()
+                print(f"✅ Inference API model loaded successfully: {response.json()}")
+            except requests.exceptions.RequestException as e:
+                print(f"❌ Error calling inference API load_model: {e}")
+
         # Model comparison step
         if batch != 0:
             print("[Model Selection] Comparing challenger with current champion...")
@@ -381,6 +389,15 @@ def training_pipeline():
                 client.set_registered_model_alias("house_prices", 'champion', new_model_version)
                 print(f"[Promotion] Challenger promoted to champion (v{new_model_version})")
                 print(f"Calling 'inference-api/load_model' method")
+                
+                # Call the inference API to load the new champion model
+                try:
+                    response = requests.post(INFERENCE_API_URL, timeout=30)
+                    response.raise_for_status()
+                    print(f"✅ Inference API model loaded successfully: {response.json()}")
+                except requests.exceptions.RequestException as e:
+                    print(f"❌ Error calling inference API load_model: {e}")
+                    
             else:
                 print(f"[Promotion] Champion model (v{champion_version}) retained")
 
@@ -388,10 +405,10 @@ def training_pipeline():
 
     trigger_rerun = TriggerDagRunOperator(
         task_id='trigger_dag_rerun',
-        trigger_dag_id='1-house-prices-training-pipeline',  # Same DAG ID
-        wait_for_completion=False,  # Don't wait for the triggered run to complete
-        trigger_rule='all_done',  # Trigger when all upstream tasks finish (success or failure)
-        conf={"triggered_by": "rerun_task"}  # Optional: pass configuration to identify this as a rerun
+        trigger_dag_id='1-house-prices-training-pipeline',
+        wait_for_completion=False,
+        trigger_rule='all_success',
+        conf={"triggered_by": "rerun_task"}
     )
 
     batch = evaluate_run_and_load_raw_data()
