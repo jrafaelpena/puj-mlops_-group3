@@ -30,10 +30,7 @@ model_version = None
 @app.post("/load_model/")
 def load_model():
     global model, model_version
-    if model is not None and model_version is not None:
-        print(f"✅ Modelo ya cargado (alias: 'champion', versión: {model_version})")
-        return {"message": f"Modelo ya cargado (alias: 'champion', versión: {model_version})"}
-
+    
     try:
         print(f"🔄 Cargando modelo desde MLflow: {MLFLOW_MODEL_URI}")
         model = mlflow.pyfunc.load_model(MLFLOW_MODEL_URI)

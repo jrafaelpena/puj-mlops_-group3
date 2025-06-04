@@ -7,6 +7,7 @@ import json
 from typing import Dict, Any
 import os
 import numpy as np
+from datetime import datetime
 
 # Configure the app
 st.set_page_config(
@@ -65,6 +66,10 @@ def make_prediction(house_data: Dict[str, Any]):
 def format_price(price):
     return f"${price:,.0f}"
 
+# Function to format datetime
+def format_datetime(dt):
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
 # Sidebar for model loading and examples
 with st.sidebar:
     st.header("Model Management")
@@ -75,13 +80,34 @@ with st.sidebar:
         if result:
             st.success(result["message"])
             st.session_state["model_loaded"] = True
+            st.session_state["model_load_time"] = datetime.now()
+            st.rerun()  # Refresh to show the updated timestamp
         else:
             st.error("Failed to load the model.")
             st.session_state["model_loaded"] = False
+            if "model_load_time" in st.session_state:
+                del st.session_state["model_load_time"]
     
     # Display model status
     if "model_loaded" in st.session_state and st.session_state["model_loaded"]:
         st.success("✅ Model is loaded and ready")
+        
+        # Display last load time if available
+        if "model_load_time" in st.session_state:
+            load_time = st.session_state["model_load_time"]
+            st.info(f"📅 **Last loaded:** {format_datetime(load_time)}")
+            
+            # Calculate time since last load
+            time_diff = datetime.now() - load_time
+            hours = int(time_diff.total_seconds() // 3600)
+            minutes = int((time_diff.total_seconds() % 3600) // 60)
+            
+            if hours > 0:
+                time_since = f"{hours}h {minutes}m ago"
+            else:
+                time_since = f"{minutes}m ago"
+            
+            st.caption(f"⏱️ Loaded {time_since}")
     else:
         st.warning("⚠️ Model needs to be loaded before predictions")
     
