@@ -2,6 +2,7 @@
 from airflow.decorators import dag, task
 from airflow.utils.dates import days_ago
 from airflow.operators.python import PythonOperator
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
 import requests
 import pandas as pd
@@ -13,9 +14,9 @@ import time
 from sklearn.model_selection import train_test_split
 from utils import *
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LinearRegression
 import mlflow
 
-from io import StringIO
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
@@ -38,6 +39,10 @@ TRACKING_URI = "http://10.43.101.189:30010"
 os.environ['MLFLOW_S3_ENDPOINT_URL'] = "http://10.43.101.189:30000"
 os.environ['AWS_ACCESS_KEY_ID'] = 'minioadmin'
 os.environ['AWS_SECRET_ACCESS_KEY'] = 'project3'
+
+
+# Parámetros API inferencia
+INFERENCE_API_URL = "http://10.43.101.189:30898/load_model/"
 
 # Parámetros entrenamiento
 DATA_API_URL = "http://10.43.101.108:80/data"
@@ -106,6 +111,10 @@ def training_pipeline():
                 'zip_code': 'string',
                 'house_size': 'int64'
             })
+
+            # Lowercase normalization for city and state columns
+            df['city'] = df['city'].str.lower()
+            df['state'] = df['state'].str.lower()
 
             # Clean street and zip_code columns by removing any trailing ".0"
             df['street'] = df['street'].str.replace(r'\.0$', '', regex=True)
@@ -177,8 +186,21 @@ def training_pipeline():
 
         if_exists = "replace" if batch == 0 else "append"
         print(f"Saving data to 'clean_data' table with if_exists='{if_exists}'")
-        final_df.to_sql("clean_data", con=engine, if_exists=if_exists, index=False)
-
+        
+        # FIXED: Use explicit transaction management
+        with engine.begin() as conn:
+            final_df.to_sql("clean_data", con=conn, if_exists=if_exists, index=False)
+            
+            # Verify data was written successfully
+            row_count = conn.execute(text("SELECT COUNT(*) FROM clean_data")).scalar()
+            print(f"Successfully committed {row_count} total rows to clean_data table")
+            
+            # Verify this batch's data specifically
+            batch_count = conn.execute(text(f"SELECT COUNT(*) FROM clean_data WHERE batch = {batch}")).scalar()
+            print(f"Batch {batch} contributed {batch_count} rows")
+        
+        # Clean up connection pool to ensure fresh connections for next task
+        engine.dispose()
         print(f"Preprocessing completed. clean_data table updated with batch: {batch}")
 
     @task
@@ -207,7 +229,8 @@ def training_pipeline():
 
             # Load all clean data
             query = "SELECT * FROM clean_data"
-            clean_data_df = pd.read_sql(query, engine)
+            engine_2 = create_engine(CONNECTION_STRING)
+            clean_data_df = pd.read_sql(query, engine_2)
             print(f"Loaded clean_data with {clean_data_df.shape[0]} rows")
 
             # Find batches not yet processed
@@ -279,7 +302,7 @@ def training_pipeline():
         print(f"[Preprocessing] Applying OneHotEncoder to: {cat_columns}")
 
         one_hot_encoder = OneHotEncoder(
-            max_categories=101,
+            max_categories=51,
             min_frequency=0.001,
             handle_unknown='infrequent_if_exist'
         )
@@ -291,7 +314,7 @@ def training_pipeline():
         # Final pipeline with preprocessing and model
         final_pipeline = Pipeline([
             ("preprocess", preprocessor),
-            ("model", RandomForestRegressor(random_state=42, n_jobs=-1))
+            ("model", LinearRegression(n_jobs=-1))
         ])
 
         print("[Training] Fitting the pipeline on training data...")
@@ -308,7 +331,7 @@ def training_pipeline():
 
         with mlflow.start_run(experiment_id=experiment.experiment_id, run_name=f"run_batch_{batch}") as run:
             # Custom evaluation and metrics logging
-            metrics = custom_reports(final_pipeline, X_test, y_test)
+            metrics = custom_reports_regression(final_pipeline, X_test, y_test)
             print(f"[Metrics] Logged metrics: {metrics}")
             mlflow.log_metrics(metrics)
 
@@ -339,10 +362,12 @@ def training_pipeline():
                 champion_version = client.get_model_version_by_alias("house_prices", "champion").version
             except Exception as e:
                 print(f"[Warning] Could not load champion model: {e}")
+                print(f"[Warning] Assigning @champion alias to new version: {new_model_version}")
+                client.set_registered_model_alias("house_prices", 'champion', new_model_version)
                 return  # Exit early if no champion to compare against
 
             # Evaluate both models
-            champion_model_metrics = custom_reports(champion_model, X_test, y_test)
+            champion_model_metrics = custom_reports_regression(champion_model, X_test, y_test)
 
             print(f"[Comparison] Champion (v{champion_version}) metrics: {champion_model_metrics}")
             print(f"[Comparison] Challenger (v{new_model_version}) metrics: {metrics}")
@@ -355,79 +380,25 @@ def training_pipeline():
             if metrics['test_rmse'] <= champion_model_metrics['test_rmse']:
                 client.set_registered_model_alias("house_prices", 'champion', new_model_version)
                 print(f"[Promotion] Challenger promoted to champion (v{new_model_version})")
+                print(f"Calling 'inference-api/load_model' method")
             else:
                 print(f"[Promotion] Champion model (v{champion_version}) retained")
 
         print(f"[Batch {batch}] Training task completed successfully.")
 
-    @task
-    def generate_shap_summary(batch: int) -> None:
-        if itn(batch) != MAX_API_BATCH:
-            print(f"Batch {batch} is not the MAX_API_BATCH ({MAX_API_BATCH}). Skipping SHAP summary generation.")
-            return
-
-        print(f"Generating SHAP summary plot for batch {batch}...")
-
-        # Connect to the database
-        engine = create_engine(CONNECTION_STRING)
-        query = "SELECT * FROM clean_data WHERE dataset = 'test'"
-        df = pd.read_sql(query, engine)
-        print(f"Loaded {df.shape[0]} rows of test data for SHAP analysis.")
-
-        # Separate features and target
-        columns_to_drop = ['batch', 'dataset', 'price']
-        X_test = df.drop(columns=columns_to_drop)
-        y_test = df['price']
-
-        # Load the champion model using MLflow and get raw sklearn pipeline
-        champion_model_uri = "models:/house_prices@champion"
-        print(f"Loading champion model from {champion_model_uri}")
-        champion_model = mlflow.pyfunc.load_model(champion_model_uri)
-        pipeline = champion_model.get_raw_model()
-
-        # Extract transformer and model
-        transformer = pipeline.named_steps["preprocess"]
-        model = pipeline.named_steps["model"]
-
-        # Transform features
-        print("Transforming features using the pipeline's preprocessor...")
-        X_transformed = transformer.transform(X_test)
-
-        if hasattr(X_transformed, "toarray"):
-            X_transformed = X_transformed.toarray()  # SHAP expects dense input for tree explainer
-            print("Converted transformed features to dense array.")
-
-        # Generate SHAP values
-        print("Generating SHAP values...")
-        explainer = shap.TreeExplainer(model)
-        shap_values = explainer.shap_values(X_transformed)
-
-        # Create SHAP summary plot
-        print("Creating SHAP summary plot...")
-        shap.summary_plot(shap_values, X_transformed, show=False)
-        plot_path = f"/tmp/shap_summary_batch_{batch}.png"
-        plt.savefig(plot_path, bbox_inches='tight')
-        plt.close()
-        print(f"SHAP summary plot saved to {plot_path}")
-
-        # Log SHAP plot to MLflow
-        mlflow.set_tracking_uri(TRACKING_URI)
-        mlflow.set_experiment("house_price_prediction")
-        with mlflow.start_run(run_name=f"shap_summary_batch_{batch}"):
-            mlflow.log_artifact(plot_path, artifact_path="shap_summary_plots")
-            print(f"Logged SHAP summary plot to MLflow under 'shap_summary_plots/'")
-
-        # Cleanup temporary file
-        os.remove(plot_path)
-        print("Temporary SHAP summary plot file removed.")
-
-
-
-
+    trigger_rerun = TriggerDagRunOperator(
+        task_id='trigger_dag_rerun',
+        trigger_dag_id='1-house-prices-training-pipeline',  # Same DAG ID
+        wait_for_completion=False,  # Don't wait for the triggered run to complete
+        trigger_rule='all_done',  # Trigger when all upstream tasks finish (success or failure)
+        conf={"triggered_by": "rerun_task"}  # Optional: pass configuration to identify this as a rerun
+    )
 
     batch = evaluate_run_and_load_raw_data()
-    preprocess_and_split(batch)
+    preprocess_task = preprocess_and_split(batch)
     train_boolean = train_decesision(batch)
-    train_model(train_boolean, batch)
+    train_task = train_model(train_boolean, batch)
+    
+    preprocess_task >> train_boolean >> train_task >> trigger_rerun
 
 training_pipeline_dag = training_pipeline()

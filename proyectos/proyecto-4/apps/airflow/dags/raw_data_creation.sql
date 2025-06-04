@@ -2,6 +2,8 @@ DROP TABLE IF EXISTS raw_data;
 
 DROP TABLE IF EXISTS clean_data;
 
+DROP TABLE IF EXISTS batches_check;
+
 CREATE TABLE raw_data (
     brokered_by       TEXT,
     status            TEXT,
