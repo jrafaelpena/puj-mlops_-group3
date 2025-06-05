@@ -292,15 +292,20 @@ Ejecuta un flujo CI más especializado para la API de inferencia (fast-api-iris)
 
 El flujo principal (project-4.yaml) garantiza que los contenedores de producción siempre estén actualizados cuando se modifican sus scripts o dependencias. Por su parte, el segundo workflow (ci-cd.yml) permite gestionar el ciclo de vida del modelo de ML, facilitando el entrenamiento reproducible y la publicación.
 
+<br>
 
 ## Conclusiones
 
-Este taller provee una guía paso a paso para implementar un pipeline de MLOps completo, incluyendo:
-- Orquestación del flujo de datos y entrenamiento con Airflow.
-- Registro de experimentos y modelos con MLflow (MySQL + MinIO).
-- Exposición de un servicio REST para inferencia (FastAPI) y visualización de resultados (Streamlit).
-- Monitoreo de métricas en tiempo real con Prometheus y Grafana.
-- Pruebas de carga con Locust.
-- Aprovisionamiento declarativo de recursos en Kubernetes usando manifiestos Kustomize y sincronización con Argo CD.
+Este taller ofrece una guía completa y práctica para desplegar un pipeline de MLOps moderno, completamente automatizado, modular y desplegable en Kubernetes. A lo largo del desarrollo, se integran múltiples tecnologías que permiten cubrir todo el ciclo de vida de un modelo de machine learning:
+- Orquestación de procesamiento y entrenamiento por lotes con Airflow, incluyendo mecanismos automáticos de parada (AirflowSkipException) y reinicio (TriggerDagRunOperator), garantizando un flujo autónomo sin loops infinitos.
+- Registro de experimentos y control de versiones con MLflow, respaldado por almacenamiento en MinIO y metadatos en MySQL, lo cual permite comparar métricas y realizar despliegue controlado mediante el esquema champion/challenger.
+- Despliegue de modelos mediante un servicio de inferencia REST (FastAPI), con recarga automática del modelo cuando un nuevo challenger supera al champion.
+- Visualización de resultados y métricas con Streamlit, ofreciendo una interfaz ligera e interactiva para explorar los datos y predicciones.
+- Monitoreo de métricas en tiempo real con Prometheus y Grafana, incluyendo dashboards provisionados automáticamente desde Kubernetes mediante ConfigMaps.
+- Automatización del entrenamiento y despliegue con GitHub Actions, a través de dos workflows:
 
-Al finalizar estos pasos, contarás con un entorno replicable donde cada componente reside en su propio contenedor, garantiza escalabilidad y ofrece trazabilidad total del ciclo de vida del modelo.
+    - project-4.yaml: detecta cambios en los scripts y dependencias de inference-api y streamlit, construye las imágenes Docker, las etiqueta y publica automáticamente en Docker Hub.
+
+    - ci-cd.yml: gestiona el ciclo de vida del modelo ML para una API de inferencia, ejecutando instalación, entrenamiento y publicación del modelo como artefacto.
+      
+- Infraestructura definida como código mediante manifiestos YAML y Kustomize, desplegada y sincronizada con Argo CD, asegurando consistencia entre versiones y facilidad de rollback o actualización.
