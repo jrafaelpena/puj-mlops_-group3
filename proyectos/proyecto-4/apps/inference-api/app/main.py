@@ -22,7 +22,7 @@ MLFLOW_TRACKING_URI = os.getenv('MLFLOW_TRACKING_URI', 'http://mlflow:5000')
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 MLFLOW_MODEL_URI = "models:/house_prices@champion"
 
-# Modelo global !!!!!
+# Modelo global !!!!!!!
 model = None
 model_version = None
 
