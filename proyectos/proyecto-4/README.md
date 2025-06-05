@@ -1,5 +1,7 @@
 # Proyecto 4 MLOps
 
+### [🎥 Ver video en YouTube](https://youtu.be/CgQ7kvihTHg)
+
 Este repositorio contiene todos los artefactos, configuraciones y manifiestos necesarios para construir, desplegar y operar un pipeline completo de Machine Learning orientado a MLOps. A continuación encontrarás:
 
 <br>
