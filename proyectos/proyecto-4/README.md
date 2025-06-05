@@ -2,12 +2,15 @@
 
 Este repositorio contiene todos los artefactos, configuraciones y manifiestos necesarios para construir, desplegar y operar un pipeline completo de Machine Learning orientado a MLOps. A continuación encontrarás:
 
+<br>
 
-### Descripción
+## Descripción
 
 El objetivo de este taller es desplegar un pipeline de MLOps que cubra todo el ciclo de vida de un modelo de Machine Learning, desde la ingesta de datos brutos hasta la entrega de resultados de inferencia a través de una API y una interfaz web.
 
-### Componentes principales
+<br>
+
+## Componentes principales
 
 1. **Airflow**: Orquesta la recolección, preprocesamiento y entrenamiento continuo de un modelo.
 2. **MLflow**: Registra experimentos, métricas e historial de modelos.
@@ -21,11 +24,15 @@ El objetivo de este taller es desplegar un pipeline de MLOps que cubra todo el c
 
 Todo lo anterior se ejecuta sobre un clúster Kubernetes (MicroK8s, EKS, GKE, etc.) y se basa en manifiestos organizados en carpetas “base/” y “overlays/” para facilitar la reutilización.
 
-### Diagrama de arquitectura del proyect
+<br>
+
+## Diagrama de arquitectura del proyect
 
 <img src="images/project.jpg" width="95%">
 
-### Estructura del repositorio
+<br>
+
+## Estructura del repositorio
 
     ├── .argocd-apps/
     │   ├── airflow-app.yaml
@@ -119,9 +126,11 @@ Todo lo anterior se ejecuta sobre un clúster Kubernetes (MicroK8s, EKS, GKE, et
     ├── README.md
     └── LICENSE
 
-### Desarrollo
+<br>
 
-## 1. Creación automática del bucket Minio
+## Desarrollo
+
+### 1. Creación automática del bucket Minio
 
 Al desplegar MLflow en Kubernetes, necesitamos asegurarnos de que existan dos buckets en Minio para almacenar artefactos y datos relacionados:
 
@@ -134,8 +143,10 @@ En lugar de crear manualmente estos buckets después de levantar Minio, se confi
 
 De esta forma, cada vez que MLflow se inicie (o se redeploye), se garantiza que los buckets estén presentes, evitando errores de artefactos faltantes en tiempo de ejecución.
 
+<br>
 
-## 2. Grafana
+
+### 2. Grafana
 
 ConfigMaps usados para provisionar automáticamente Grafana en Kubernetes: definir la fuente de datos (Prometheus), configurar el proveedor de dashboards (dashboard provider) y cargar el dashboard en sí (JSON).
 
@@ -151,8 +162,10 @@ ConfigMaps usados para provisionar automáticamente Grafana en Kubernetes: defin
 **rafana-dashboard-config**
 
 - Contiene el JSON completo del dashboard que se desea provisionar en Grafana. El label grafana_dashboard: "1" hace que, al montar el ConfigMap en el directorio de dashboards, Grafana lo reconozca y lo cargue automáticamente. Grafana monta este ConfigMap (por ejemplo, bajo /var/lib/grafana/dashboards/grafana-dashboard.json). Gracias al “dashboard provider” configurado en grafana-dashboard-provider.yaml, Grafana detecta este archivo JSON y lo importa como un dashboard nuevo llamado “Tablero Proyecto 4”. Este JSON define: Paneles, fuentes de datos, métricas, expresiones PromQL (por ejemplo, rate(http_requests_total[5m])), disposición (gridPos), opciones de estilo (dark), intervalos de refresco (10 s), etc. Cada vez que se actualice este ConfigMap a nivel de Kubernetes, Grafana sobrescribirá el dashboard con la nueva versión del JSON.
+<br>
 
-## 3. Dag
+
+### 3. Dag
 
 Este DAG está diseñado para operar de manera completamente automática. Se encarga de procesar por lotes (batch) los datos de precios de casas, realizando tareas de carga, limpieza, entrenamiento y evaluación de modelos.
 
@@ -172,7 +185,10 @@ Este mecanismo permite que el pipeline:
 
 El pipeline es completamente autónomo, procesando cada lote de datos de forma escalonada hasta agotar la fuente sin necesidad de loops explícitos.
 
-## 4. Pipeline
+<br>
+
+
+### 4. Pipeline
 
 El flujo de entrenamiento está diseñado con una lógica robusta de control de versiones de modelos y comparación de desempeño utilizando MLflow.
 
@@ -209,12 +225,75 @@ El pipeline implementa una lógica de control de versiones y evaluación progres
 Esta arquitectura permite que solo los mejores modelos pasen a producción, garantizando mejoras continuas en el sistema sin necesidad de supervisión manual.
 
 
-## 5. Github Actions
+<br>
 
 
+### 5. Github Actions
+
+**Workflows**
+
+*1. project-4.yaml*
+   
+Automáticamente reconstruye y publica imágenes Docker para los componentes inference-api y streamlit del proyecto proyecto-4.
+
+- Se ejecuta manualmente desde GitHub (workflow_dispatch).
+- Clona el código del repo
+
+- Hace login a Docker Hub usando secretos
+
+- Publica las imágenes en Docker Hub
+
+- Construye dos imágenes con docker buildx:
+
+        jrpenagu/fastapi-house-prices
+
+        jrpenagu/streamlit-house-prices
+
+- Etiqueta las imágenes con:
+
+        :latest
+
+        El SHA corto del commit (ej. :e4a1c9)
+
+<br>
+
+Este workflow se activa cuando se hace push a la rama main y hay cambios en:
+
+- apps/inference-api/**
+
+- apps/streamlit/**
 
 
-### Conclusiones
+<br>
+
+
+*2. ci-cd.yml*
+   
+Ejecuta un flujo CI más especializado para la API de inferencia (fast-api-iris) de un taller, incluyendo instalación de dependencias, entrenamiento y publicación de modelo.
+
+- Se ejecuta con push a main en:
+
+    4/taller-ci-cd/api-inferencia/**
+
+    4/taller-ci-cd/params.yaml
+    También admite ejecución manual.
+
+- Clona el código
+
+- Instala dependencias con uv (gestor de entornos)
+
+- Configura Python según .python-version
+
+- Entrena un modelo ejecutando train_model.py
+
+- Publica el modelo entrenado como artefacto de GitHub Actions
+- A diferencia del primer workflow, este no construye imágenes Docker, sino que automatiza el flujo de ML con instalación, entrenamiento y almacenamiento del modelo.
+
+
+El flujo principal (project-4.yaml) garantiza que los contenedores de producción siempre estén actualizados cuando se modifican sus scripts o dependencias. Por su parte, el segundo workflow (ci-cd.yml) permite gestionar el ciclo de vida del modelo de ML, facilitando el entrenamiento reproducible y la publicación.
+
+
+## Conclusiones
 
 Este taller provee una guía paso a paso para implementar un pipeline de MLOps completo, incluyendo:
 - Orquestación del flujo de datos y entrenamiento con Airflow.
