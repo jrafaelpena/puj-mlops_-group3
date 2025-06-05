@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: streamlit
-          image: jrpenagu/streamlit-house-prices:1fe758e
+          image: jrpenagu/streamlit-house-prices:fcd447d
           ports:
             - containerPort: 8501
           command: ["uv", "run", "streamlit", "run", "streamlit_app.py", "--server.address=0.0.0.0", "--server.port=8501"]
